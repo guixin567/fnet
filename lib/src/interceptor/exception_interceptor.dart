@@ -35,7 +35,7 @@ class ExceptionInterceptor extends Interceptor {
     ///没有网络的时候 toast，但是这里有防抖，假如进入一个页面调用3个接口，一段时间内只能有一个提示
     if (!_isConnected) {
       errorMsg = '无网络连接，请检查您的网络设置';
-      NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg ?? '');
+      NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg);
     }else{
       // 处理网络异常
       switch (err.type) {
@@ -90,9 +90,7 @@ class ExceptionInterceptor extends Interceptor {
           }
           break;
 
-        default:
-          break;
-      }
+        }
 
       if (isShowToast) {
         NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg ?? '');

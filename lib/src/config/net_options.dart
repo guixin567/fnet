@@ -5,7 +5,6 @@ import 'package:fnet/src/decoder/default_net_decoder.dart' show DefaultNetDecode
 import 'package:fnet/src/typedefs.dart' show ToastCallback;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
-import 'net_config.dart';
 
 class NetOptions {
   /// private constructor
