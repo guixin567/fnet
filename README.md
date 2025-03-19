@@ -1,18 +1,27 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## use
+```dart
+  NetOptions.instance
+    .addHeaders({"aaa": '111'})
+.setBaseUrl("https://www.wanandroid.com/")
+    .setShowToastFunc((text) {
+SmartDialog.showToast(text, debounce: true);
+})
+    .setShowLoadingFunc(() {
+SmartDialog.showLoading();
+})
+    .setDismissLoadingFunc(() {
+SmartDialog.dismiss(status: SmartStatus.loading);
+})
+    .addInterceptor(CookieManager(CookieJar()))
+    .addInterceptor(ExceptionInterceptor())
+    .addInterceptor(LoadingInterceptor())
+//  超时时间
+    .setConnectTimeout(const Duration(milliseconds: 3000))
+// 允许打印log，默认未 true
+    .enableLogger(true)
+.create();
+```
 
 ## Features
 
