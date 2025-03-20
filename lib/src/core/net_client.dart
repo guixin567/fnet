@@ -273,8 +273,14 @@ Future<Result<K>> _execute<T, K>(
     }
   } on DioException catch (e) {
     if (kDebugMode) print("$path => DioError${e.message}");
+    ///增加业务message获取
+    String? errorMessage = e.message;
+    if(e.response?.data['message']?.toString().isNotEmpty ?? false){
+      errorMessage = e.response?.data['message'];
+    }
+
     return Result.failure(
-        msg: e.message ?? '', code: e.response?.statusCode ?? defaultErrorCode);
+        msg: errorMessage, code: e.response?.statusCode ?? defaultErrorCode);
   } on NetException catch (e) {
     if (kDebugMode) print("$path => NetException${e.toString()}");
     return Result.failure(msg: e.message, code: e.code);
