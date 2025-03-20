@@ -92,6 +92,9 @@ class ExceptionInterceptor extends Interceptor {
 
         }
 
+        if(err.response?.data['message']?.toString().isNotEmpty ?? false){
+          errorMsg = err.response?.data['message'];
+        }
       if (isShowToast) {
         NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg ?? '');
       }

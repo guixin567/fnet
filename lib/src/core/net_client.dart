@@ -15,7 +15,7 @@ Future<Result<K>> get<T, K>(
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
       bool isShowLoading = false,
-      bool isShowErrorToast = false,
+      bool isShowErrorToast = true,
 }) async {
   assert(!(httpDecode != null && converter != null),
       'httpDecode和converter不能同时赋值，请删除一个');
@@ -286,6 +286,7 @@ Future<Result<K>> _execute<T, K>(
 
 Options _checkOptions(String method, Options? options, bool isShowLoading, bool isShowErrorToast) {
   options ??= Options();
+  options.extra ??= {};
   options.extra?[paramIsShowLoading] = isShowLoading;
   options.extra?[paramIsShowErrorToast] = isShowErrorToast;
   options.method = method;
