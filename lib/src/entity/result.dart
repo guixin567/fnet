@@ -8,7 +8,7 @@ import 'dart:io';
   String? msg;
   T? data;
 
-  bool get isSuccess => HttpStatus.ok == code;
+  bool get isSuccess => 200 == code;
 
   Result._internal({this.code, this.msg, this.data});
 
