@@ -2,36 +2,48 @@ import 'dart:io';
 
 import 'package:fnet/fnet.dart';
 
-
-/// 默认解码器
+/// Default decoder for network responses.
+/// Parses standard API response format with code, data, and msg fields.
 class DefaultNetDecoder extends NetDecoder {
-  /// 单例对象
+  /// Singleton instance
   static final DefaultNetDecoder _instance = DefaultNetDecoder._internal();
 
-  /// 内部构造方法，可避免外部暴露构造函数，进行实例化
+  /// Private constructor
   DefaultNetDecoder._internal();
 
-  /// 工厂构造方法，这里使用命名构造函数方式进行声明
+  /// Factory constructor to get singleton instance
   factory DefaultNetDecoder.getInstance() => _instance;
 
   @override
-  K decode<T, K>({required Response<dynamic> response, T? Function(dynamic)? fromJsonFunc}) {
-    var code = response.data[paramCode];
+  K decode<T, K>({
+    required Response<dynamic> response,
+    T? Function(dynamic)? fromJsonFunc,
+  }) {
+    final code = response.data[paramCode];
 
-    /// 请求成功[业务错误]
+    // Request successful (business success)
     if (code == HttpStatus.ok) {
-      var data = response.data[paramData];
+      final data = response.data[paramData];
+
+      // Handle list response
       if (fromJsonFunc != null && data is List) {
-        var dataList = List<T>.from(data.map((item) => fromJsonFunc(item)).toList()) as K;
+        final dataList = List<T>.from(
+          data.map((item) => fromJsonFunc(item)).toList(),
+        ) as K;
         return dataList;
       }
+
+      // Handle single object response
       if (fromJsonFunc != null) {
-        var model = fromJsonFunc(data) as K;
+        final model = fromJsonFunc(data) as K;
         return model;
       }
+
+      // Return raw data
       return data as K;
     } else {
-      var errorMsg = response.data[paramMsg];
+      // Business error
+      final errorMsg = response.data[paramMsg];
       throw NetException(errorMsg, code);
     }
   }

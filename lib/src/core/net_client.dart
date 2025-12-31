@@ -1,9 +1,18 @@
 import 'package:flutter/foundation.dart';
-import 'package:fnet/fnet.dart';
+import 'package:dio/dio.dart';
+import 'package:fnet/src/config/net_constant.dart';
+import 'package:fnet/src/config/net_options.dart';
+import 'package:fnet/src/decoder/net_decoder.dart';
+import 'package:fnet/src/entity/result.dart';
+import 'package:fnet/src/net_exception.dart';
 import 'package:fnet/src/typedefs.dart' show NetConverter;
 
-/// Handy method to make http GET request, which is a alias of  [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Threshold for using isolate (100KB).
+/// Data larger than this will be processed in isolate.
+const int _isolateThreshold = 100 * 1024;
+
+/// Handy method to make HTTP GET request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> get<T, K>(
   String path, {
   Object? data,
@@ -14,11 +23,11 @@ Future<Result<K>> get<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = true,
+  bool isShowLoading = false,
+  bool isShowErrorToast = true,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'GET',
@@ -35,8 +44,8 @@ Future<Result<K>> get<T, K>(
   );
 }
 
-/// Handy method to make http POST request, which is a alias of  [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Handy method to make HTTP POST request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> post<T, K>(
   String path, {
   Object? data,
@@ -48,11 +57,11 @@ Future<Result<K>> post<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = false,
+  bool isShowLoading = false,
+  bool isShowErrorToast = false,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'POST',
@@ -70,8 +79,8 @@ Future<Result<K>> post<T, K>(
   );
 }
 
-/// Handy method to make http PUT request, which is a alias of  [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Handy method to make HTTP PUT request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> put<T, K>(
   String path, {
   Object? data,
@@ -83,11 +92,11 @@ Future<Result<K>> put<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = false,
+  bool isShowLoading = false,
+  bool isShowErrorToast = false,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'PUT',
@@ -105,8 +114,8 @@ Future<Result<K>> put<T, K>(
   );
 }
 
-/// Handy method to make http HEAD request, which is a alias of [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Handy method to make HTTP HEAD request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> head<T, K>(
   String path, {
   Object? data,
@@ -116,11 +125,11 @@ Future<Result<K>> head<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = false,
+  bool isShowLoading = false,
+  bool isShowErrorToast = false,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'HEAD',
@@ -136,8 +145,8 @@ Future<Result<K>> head<T, K>(
   );
 }
 
-/// Handy method to make http DELETE request, which is a alias of  [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Handy method to make HTTP DELETE request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> delete<T, K>(
   String path, {
   Object? data,
@@ -147,11 +156,11 @@ Future<Result<K>> delete<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = false,
+  bool isShowLoading = false,
+  bool isShowErrorToast = false,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'DELETE',
@@ -167,8 +176,8 @@ Future<Result<K>> delete<T, K>(
   );
 }
 
-/// Handy method to make http PATCH request, which is a alias of  [dio.fetch(RequestOptions)].
-/// fromJsonFunc 为空返回原始数据
+/// Handy method to make HTTP PATCH request.
+/// [fromJsonFunc] - JSON deserializer function, returns raw data if null.
 Future<Result<K>> patch<T, K>(
   String path, {
   Object? data,
@@ -180,12 +189,11 @@ Future<Result<K>> patch<T, K>(
   NetDecoder? httpDecode,
   NetConverter<K>? converter,
   T? Function(dynamic)? fromJsonFunc,
-      bool isShowLoading = false,
-      bool isShowErrorToast = false,
-
+  bool isShowLoading = false,
+  bool isShowErrorToast = false,
 }) async {
   assert(!(httpDecode != null && converter != null),
-      'httpDecode和converter不能同时赋值，请删除一个');
+      'httpDecode and converter cannot be used simultaneously');
   return await _execute(
     path,
     'PATCH',
@@ -203,7 +211,7 @@ Future<Result<K>> patch<T, K>(
   );
 }
 
-
+/// Download file from url.
 Future<Response> download(
   String urlPath,
   dynamic savePath, {
@@ -228,14 +236,12 @@ Future<Response> download(
   );
 }
 
-/// This method invokes the [cancel()] method on either the input
-/// [cancelToken] or internal [_cancelToken] to pre-maturely end all
-/// requests attached to this token.
+/// Cancel all requests attached to the given [cancelToken].
 void cancelRequests({CancelToken? cancelToken}) {
   cancelToken?.cancel();
 }
 
-/// A method to make http request, which is a alias of  [dio.fetch(RequestOptions)].
+/// Internal method to execute HTTP requests.
 Future<Result<K>> _execute<T, K>(
   String path,
   String method, {
@@ -251,46 +257,85 @@ Future<Result<K>> _execute<T, K>(
   bool isShowLoading = false,
   bool isShowErrorToast = false,
 }) async {
-
   try {
     final response = await NetOptions.instance.dio.request(
       path,
       data: data,
       queryParameters: queryParameters,
-      options: _checkOptions(method, options,isShowLoading,isShowErrorToast),
+      options: _checkOptions(method, options, isShowLoading, isShowErrorToast),
       onReceiveProgress: onReceiveProgress,
       onSendProgress: onSendProgress,
       cancelToken: cancelToken,
     );
+
     if (converter != null) {
-      return await compute(converter, response);
+      // Use isolate for large data, otherwise process on main thread
+      final responseSize = _estimateResponseSize(response);
+      if (responseSize > _isolateThreshold) {
+        return await compute(converter, response);
+      } else {
+        return converter(response);
+      }
     } else {
-      var decode = await compute(
+      final decoder = httpDecode ?? NetOptions.instance.httpDecoder;
+      final responseSize = _estimateResponseSize(response);
+
+      // Use isolate for large data, otherwise process on main thread
+      if (responseSize > _isolateThreshold) {
+        var decode = await compute(
           _mapCompute<T, K>,
-          _MapBean<T>(response, fromJsonFunc,
-              httpDecode ?? NetOptions.instance.httpDecoder));
-      return Result.success(decode);
+          _MapBean<T>(response, fromJsonFunc, decoder),
+        );
+        return Result.success(decode);
+      } else {
+        var decode = decoder.decode<T, K>(
+          response: response,
+          fromJsonFunc: fromJsonFunc,
+        );
+        return Result.success(decode);
+      }
     }
   } on DioException catch (e) {
-    if (kDebugMode) print("$path => DioError${e.message}");
-    ///增加业务message获取
+    if (kDebugMode) print("$path => DioException: ${e.message}");
+
+    // Extract error message with type-safe access
     String? errorMessage = e.message;
-    if(e.response?.data['message']?.toString().isNotEmpty ?? false){
-      errorMessage = e.response?.data['message'];
+    final responseData = e.response?.data;
+    if (responseData is Map &&
+        responseData['message']?.toString().isNotEmpty == true) {
+      errorMessage = responseData['message'].toString();
     }
 
     return Result.failure(
-        msg: errorMessage, code: e.response?.statusCode ?? defaultErrorCode);
+      msg: errorMessage,
+      code: e.response?.statusCode ?? defaultErrorCode,
+    );
   } on NetException catch (e) {
-    if (kDebugMode) print("$path => NetException${e.toString()}");
+    if (kDebugMode) print("$path => NetException: ${e.toString()}");
     return Result.failure(msg: e.message, code: e.code);
   } on TypeError catch (e) {
-    if (kDebugMode) print("$path => TypeError${e.toString()}");
+    if (kDebugMode) print("$path => TypeError: ${e.toString()}");
     return Result.failure(msg: e.toString());
   }
 }
 
-Options _checkOptions(String method, Options? options, bool isShowLoading, bool isShowErrorToast) {
+/// Estimate response data size for deciding whether to use isolate.
+int _estimateResponseSize(Response response) {
+  final data = response.data;
+  if (data == null) return 0;
+  if (data is String) return data.length;
+  if (data is List) return data.length * 100; // Rough estimate
+  if (data is Map) return data.length * 200; // Rough estimate
+  return 0;
+}
+
+/// Build request options with loading and toast flags.
+Options _checkOptions(
+  String method,
+  Options? options,
+  bool isShowLoading,
+  bool isShowErrorToast,
+) {
   options ??= Options();
   options.extra ??= {};
   options.extra?[paramIsShowLoading] = isShowLoading;
@@ -299,13 +344,13 @@ Options _checkOptions(String method, Options? options, bool isShowLoading, bool 
   return options;
 }
 
-/// A method to decode the response. use isolate
+/// Decode response in isolate.
 K _mapCompute<T, K>(_MapBean<T> bean) {
   return bean.httpDecode
       .decode(response: bean.response, fromJsonFunc: bean.fromJsonFunc);
 }
 
-/// `_MapBean` is a class that is used to pass parameters to the isolate.
+/// Bean class for passing parameters to isolate.
 class _MapBean<T> {
   final Response<dynamic> response;
   final T? Function(dynamic)? fromJsonFunc;

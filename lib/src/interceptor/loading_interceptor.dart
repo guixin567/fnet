@@ -1,15 +1,14 @@
-
 import 'package:fnet/fnet.dart';
 
-///是否展示loading的拦截器
-///当请求参数中设置isLoading为true时，则展示loading，请求结束后关闭loading
-class LoadingInterceptor extends Interceptor{
+/// Loading interceptor.
+/// Shows loading indicator when request starts and dismisses when complete.
+/// Controlled by [paramIsShowLoading] parameter in request options.
+class LoadingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    //是否展示loading
+    // Check if loading should be shown
     bool isLoading = options.extra[paramIsShowLoading] == true;
-    //掉用showLoading的方法
-    if(isLoading){
+    if (isLoading) {
       NetOptions.instance.httpConfigBuilder?.showLoadingFunc?.call();
     }
     handler.next(options);
@@ -17,10 +16,9 @@ class LoadingInterceptor extends Interceptor{
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    //是否展示loading
+    // Check if loading should be dismissed
     bool isLoading = response.requestOptions.extra[paramIsShowLoading] == true;
-    //掉用dismissLoading的方法
-    if(isLoading){
+    if (isLoading) {
       NetOptions.instance.httpConfigBuilder?.dismissLoadingFunc?.call();
     }
     handler.next(response);
@@ -28,10 +26,9 @@ class LoadingInterceptor extends Interceptor{
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    //是否展示loading
+    // Check if loading should be dismissed on error
     bool isLoading = err.requestOptions.extra[paramIsShowLoading] == true;
-    //掉用dismissLoading的方法
-    if(isLoading){
+    if (isLoading) {
       NetOptions.instance.httpConfigBuilder?.dismissLoadingFunc?.call();
     }
     handler.next(err);

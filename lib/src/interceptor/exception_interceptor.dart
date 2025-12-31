@@ -3,16 +3,16 @@ import 'package:dio/dio.dart';
 import 'package:fnet/src/config/net_constant.dart';
 import 'package:fnet/src/config/net_options.dart';
 
-///网络异常拦截器
+/// Network exception interceptor.
+/// Handles network errors and displays appropriate toast messages.
 class ExceptionInterceptor extends Interceptor {
-
   bool _isConnected = false;
 
   ExceptionInterceptor() {
     _initNetworkStatus();
 
-    Connectivity().onConnectivityChanged.listen((event){
-      _isConnected = ConnectivityResult.none != event.first;
+    Connectivity().onConnectivityChanged.listen((event) {
+      _isConnected = !event.contains(ConnectivityResult.none);
     });
   }
 
@@ -22,87 +22,86 @@ class ExceptionInterceptor extends Interceptor {
 
   Future<bool> _checkNetworkConnection() async {
     var connectivityResult = await Connectivity().checkConnectivity();
-    return ConnectivityResult.none != connectivityResult.first;
+    return !connectivityResult.contains(ConnectivityResult.none);
   }
 
-
-
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async{
-    //是否展示loading
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // Check if error toast should be shown
     bool isShowToast = err.requestOptions.extra[paramIsShowErrorToast] == true;
-    String? errorMsg = err.message;
-    ///没有网络的时候 toast，但是这里有防抖，假如进入一个页面调用3个接口，一段时间内只能有一个提示
+    final localizations = NetOptions.instance.localizations;
+    String errorMsg = err.message ?? '';
+
+    // Handle no network connection
     if (!_isConnected) {
-      errorMsg = '无网络连接，请检查您的网络设置';
+      errorMsg = localizations.noNetworkConnection;
       NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg);
-    }else{
-      // 处理网络异常
+    } else {
+      // Handle network errors based on type
       switch (err.type) {
         case DioExceptionType.connectionTimeout:
-          errorMsg = "连接超时，请检查网络连接。";
+          errorMsg = localizations.connectionTimeout;
           break;
         case DioExceptionType.sendTimeout:
-          errorMsg = "请求超时，请稍后重试";
+          errorMsg = localizations.sendTimeout;
           break;
         case DioExceptionType.receiveTimeout:
-          errorMsg = "响应超时，请检查网络连接";
+          errorMsg = localizations.receiveTimeout;
           break;
         case DioExceptionType.badResponse:
-        // 处理状态码异常
-        // 根据状态码进行更细致的处理
+          // Handle status code errors
           switch (err.response?.statusCode) {
             case 400:
-              errorMsg = "参数异常";
+              errorMsg = localizations.badRequest;
               break;
             case 401:
-              errorMsg = "未授权，可能需要登录";
+              errorMsg = localizations.unauthorized;
               break;
             case 403:
-              errorMsg = "禁止访问，您没有权限";
+              errorMsg = localizations.forbidden;
               break;
             case 404:
-              errorMsg = "未找到请求的资源";
+              errorMsg = localizations.notFound;
               break;
             case 500:
-              errorMsg = "服务异常，请稍后重试";
+              errorMsg = localizations.internalServerError;
               break;
             default:
-              errorMsg = "服务异常，请稍后重试";
+              errorMsg = localizations.serverError;
           }
           break;
         case DioExceptionType.cancel:
-          errorMsg = "请求被取消";
+          errorMsg = localizations.requestCancelled;
           break;
-
         case DioExceptionType.badCertificate:
-          errorMsg = "证书异常";
+          errorMsg = localizations.badCertificate;
           break;
         case DioExceptionType.connectionError:
-          errorMsg = "本地网络异常";
+          errorMsg = localizations.connectionError;
           break;
         case DioExceptionType.unknown:
-        // 处理无网络情况
+          // Handle no network situation
           if (err.message?.contains("SocketException") == true) {
-            errorMsg = "无网络连接，请检查您的网络设置";
+            errorMsg = localizations.noNetworkConnection;
           } else {
-            errorMsg = "服务异常，请稍后重试";
+            errorMsg = localizations.unknownError;
           }
           break;
+      }
 
-        }
+      // Try to extract error message from response data (type-safe)
+      final responseData = err.response?.data;
+      if (responseData is Map &&
+          responseData['message']?.toString().isNotEmpty == true) {
+        errorMsg = responseData['message'].toString();
+      }
 
-        if(err.response?.data['message']?.toString().isNotEmpty ?? false){
-          errorMsg = err.response?.data['message'];
-        }
       if (isShowToast) {
-        NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg ?? '');
+        NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg);
       }
     }
 
-
-    // 继续传递错误
+    // Continue passing the error
     handler.next(err);
   }
-
 }

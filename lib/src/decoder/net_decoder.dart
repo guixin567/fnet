@@ -1,13 +1,16 @@
+import 'package:dio/dio.dart';
 
-import 'package:fnet/fnet.dart';
-
-/// Response 解码器
-/// 把 Response 转换成对应类型
+/// Response decoder interface.
+/// Converts Response to target type.
 abstract class NetDecoder {
-  ///  解码
-  ///  [response] Response
-  ///  [responseType] 解码类型
-  ///  [T] BaseNetworkModel的实现
-  ///  [K] 返回类型
-  K decode<T, K>({required Response<dynamic> response,  T? Function(dynamic)? fromJsonFunc});
+  /// Decode response to target type.
+  ///
+  /// - [response] - The HTTP response
+  /// - [fromJsonFunc] - Optional JSON deserializer function
+  /// - `T` - Model type
+  /// - `K` - Return type (can be T or List of T)
+  K decode<T, K>({
+    required Response<dynamic> response,
+    T? Function(dynamic)? fromJsonFunc,
+  });
 }
