@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:ui';
 
 import 'package:dio/dio.dart';
@@ -12,15 +13,18 @@ import 'package:native_dio_adapter/native_dio_adapter.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import 'net_config.dart';
+import '../utils/net_runner.dart';
 
 /// Network options configuration with builder pattern.
 /// Provides centralized configuration for dio-based HTTP client.
 class NetOptions {
-  /// Private constructor
-  NetOptions._() : _httpConfigBuilder = HttpConfigBuilder();
+  /// Public constructor to allow multiple instances
+  NetOptions({HttpConfigBuilder? httpConfigBuilder})
+      : _httpConfigBuilder = httpConfigBuilder ?? HttpConfigBuilder();
 
-  /// The one and only instance of this singleton
-  static final instance = NetOptions._();
+  /// Deprecated: Use [NetOptions()] constructor for multi-instance support.
+  /// The singleton instance remains for backward compatibility.
+  static final instance = NetOptions();
 
   final HttpConfigBuilder _httpConfigBuilder;
 
@@ -55,88 +59,88 @@ class NetOptions {
   /// Setting the base url for the http request.
   NetOptions setBaseUrl(String baseUrl) {
     _httpConfigBuilder.setBaseUrl(baseUrl);
-    return instance;
+    return this;
   }
 
   /// Setting the connection timeout for the http request.
   NetOptions setConnectTimeout(Duration connectTimeout) {
     _httpConfigBuilder.setConnectTimeout(connectTimeout);
-    return instance;
+    return this;
   }
 
   /// Adding headers to the request.
   NetOptions addHeaders(Map<String, dynamic> headers) {
     _httpConfigBuilder.addHeaders(headers);
-    return instance;
+    return this;
   }
 
   /// Setting the httpClientAdapter for the http request.
   /// Example: proxy, certificate
   NetOptions setHttpClientAdapter(HttpClientAdapter httpClientAdapter) {
     _httpConfigBuilder.setHttpClientAdapter(httpClientAdapter);
-    return instance;
+    return this;
   }
 
   /// Adding an interceptor to the dio instance.
   NetOptions addInterceptor(Interceptor interceptor) {
     _httpConfigBuilder.addInterceptor(interceptor);
-    return instance;
+    return this;
   }
 
   /// Adding all the interceptors to the dio instance.
   NetOptions addAllInterceptors(List<Interceptor> interceptors) {
     _httpConfigBuilder.addAllInterceptors(interceptors);
-    return instance;
+    return this;
   }
 
   /// Setting the timeout for receiving data.
   NetOptions setReceiveTimeout(Duration receiveTimeout) {
     _httpConfigBuilder.setReceiveTimeout(receiveTimeout);
-    return instance;
+    return this;
   }
 
   /// Setting the timeout for sending data.
   NetOptions setSendTimeout(Duration sendTimeout) {
     _httpConfigBuilder.setSendTimeout(sendTimeout);
-    return instance;
+    return this;
   }
 
   /// Used to set the decoder for the response.
   NetOptions setHttpDecoder(NetDecoder httpDecoder) {
     _httpDecoder = httpDecoder;
-    return instance;
+    return this;
   }
 
   /// Set the show loading callback function.
   NetOptions setShowLoadingFunc(VoidCallback showLoadingFunc) {
     _httpConfigBuilder.setShowLoadingFunc(showLoadingFunc);
-    return instance;
+    return this;
   }
 
   /// Set the dismiss loading callback function.
   NetOptions setDismissLoadingFunc(VoidCallback dismissLoadingFunc) {
     _httpConfigBuilder.setDismissLoadingFunc(dismissLoadingFunc);
-    return instance;
+    return this;
   }
 
   /// Set the toast callback function for error messages.
   NetOptions setShowToastFunc(ToastCallback toastFunc) {
     _httpConfigBuilder.setShowToastFunc(toastFunc);
-    return instance;
+    return this;
   }
 
   /// Set custom localizations for error messages (i18n support).
   /// Users can implement [NetLocalizations] to provide translations.
   NetOptions setLocalizations(NetLocalizations localizations) {
     _localizations = localizations;
-    return instance;
+    return this;
   }
 
   /// Used to enable/disable the logger.
   /// Default uses PrettyDioLogger for printing.
   NetOptions enableLogger(bool enable) {
     _isLogger = enable;
-    return instance;
+    return this;
   }
 
   /// Enable HTTP/2 support using native_dio_adapter.
@@ -144,7 +148,7 @@ class NetOptions {
   /// header compression, and server push.
   NetOptions enableHttp2(bool enable) {
     _enableHttp2 = enable;
-    return instance;
+    return this;
   }
 
   /// Enable automatic request retry on failure.
@@ -158,7 +162,7 @@ class NetOptions {
     _enableRetry = enable;
     _retryCount = retryCount;
     _retryDelay = retryDelay;
-    return instance;
+    return this;
   }
 
   /// Enable response caching.
@@ -169,16 +173,27 @@ class NetOptions {
   }) {
     _enableCache = enable;
     _cacheOptions = cacheOptions;
-    return instance;
+    return this;
   }
 
   /// Configure network request and initialize.
-  void create() {
+  /// [platform] - Target platform for HTTP/2 support. If null, uses default platform behavior.
+  void create({TargetPlatform? platform}) {
     var httpConfig = _httpConfigBuilder.create();
+    final effectivePlatform = platform ?? defaultTargetPlatform;
 
-    // Enable HTTP/2 if configured
+    // Enable HTTP/2 if configured (aware of mobile platforms)
     if (_enableHttp2) {
-      _dio.httpClientAdapter = NativeAdapter();
+      if (effectivePlatform == TargetPlatform.android ||
+          effectivePlatform == TargetPlatform.iOS ||
+          effectivePlatform == TargetPlatform.macOS) {
+        _dio.httpClientAdapter = NativeAdapter();
+      } else {
+        if (NetRunner.isDebug) {
+          print(
+              "WARNING: native_dio_adapter for HTTP/2 is not supported on this platform. Falling back to default adapter.");
+        }
+      }
     } else if (httpConfig.httpClientAdapter != null) {
       _dio.httpClientAdapter = httpConfig.httpClientAdapter!;
     }

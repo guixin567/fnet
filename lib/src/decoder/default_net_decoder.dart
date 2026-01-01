@@ -19,11 +19,15 @@ class DefaultNetDecoder extends NetDecoder {
     required Response<dynamic> response,
     T? Function(dynamic)? fromJsonFunc,
   }) {
-    final code = response.data[paramCode];
+    // If the backend doesn't follow the code/data/msg convention, 
+    // we use the HTTP status code as the source of truth if the field is missing.
+    final dynamic dataMap = response.data;
+    final dynamic rawCode = (dataMap is Map) ? dataMap[paramCode] : response.statusCode;
+    final int? code = int.tryParse(rawCode?.toString() ?? '') ?? (rawCode is int ? rawCode : response.statusCode);
 
-    // Request successful (business success)
-    if (code == HttpStatus.ok) {
-      final data = response.data[paramData];
+    // Request successful (business success: 200-299)
+    if (code != null && code >= 200 && code < 300) {
+      final data = (dataMap is Map) ? dataMap[paramData] : dataMap;
 
       // Handle list response
       if (fromJsonFunc != null && data is List) {

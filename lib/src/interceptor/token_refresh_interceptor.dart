@@ -5,10 +5,6 @@ import 'package:dio/dio.dart';
 /// Returns the new access token after refresh.
 typedef TokenRefreshCallback = Future<String?> Function();
 
-/// Token check callback function type.
-/// Returns true if the token is still valid.
-typedef TokenCheckCallback = Future<bool> Function();
-
 /// Get current access token callback.
 typedef GetTokenCallback = String? Function();
 
@@ -18,7 +14,6 @@ class TokenRefreshInterceptor extends Interceptor {
   final Dio _dio;
   final TokenRefreshCallback onRefresh;
   final GetTokenCallback getToken;
-  final TokenCheckCallback? checkTokenValid;
   final String headerKey;
 
   bool _isRefreshing = false;
@@ -29,13 +24,11 @@ class TokenRefreshInterceptor extends Interceptor {
   /// [dio] - The Dio instance to use for retries
   /// [onRefresh] - Callback to refresh the token
   /// [getToken] - Callback to get the current token
-  /// [checkTokenValid] - Optional callback to check if token is valid
   /// [headerKey] - Header key for authorization (default: 'Authorization')
   TokenRefreshInterceptor({
     required Dio dio,
     required this.onRefresh,
     required this.getToken,
-    this.checkTokenValid,
     this.headerKey = 'Authorization',
   }) : _dio = dio;
 

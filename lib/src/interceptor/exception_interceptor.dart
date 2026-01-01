@@ -6,36 +6,30 @@ import 'package:fnet/src/config/net_options.dart';
 /// Network exception interceptor.
 /// Handles network errors and displays appropriate toast messages.
 class ExceptionInterceptor extends Interceptor {
-  bool _isConnected = false;
+  final NetOptions? _options;
 
-  ExceptionInterceptor() {
-    _initNetworkStatus();
-
-    Connectivity().onConnectivityChanged.listen((event) {
-      _isConnected = !event.contains(ConnectivityResult.none);
-    });
-  }
-
-  Future<void> _initNetworkStatus() async {
-    _isConnected = await _checkNetworkConnection();
-  }
-
-  Future<bool> _checkNetworkConnection() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    return !connectivityResult.contains(ConnectivityResult.none);
-  }
+  /// Create an exception interceptor.
+  /// [_options] - Optional NetOptions to use for localizations and toast.
+  ExceptionInterceptor({NetOptions? options}) : _options = options;
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Check if error toast should be shown
     bool isShowToast = err.requestOptions.extra[paramIsShowErrorToast] == true;
-    final localizations = NetOptions.instance.localizations;
+    final options = _getOptions(err.requestOptions);
+    final localizations = options.localizations;
     String errorMsg = err.message ?? '';
 
+    // Check connectivity for no network situation
+    var connectivityResult = await Connectivity().checkConnectivity();
+    bool isConnected = !connectivityResult.contains(ConnectivityResult.none);
+
     // Handle no network connection
-    if (!_isConnected) {
+    if (!isConnected) {
       errorMsg = localizations.noNetworkConnection;
-      NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg);
+      if (isShowToast) {
+        options.httpConfigBuilder?.toastFunc?.call(errorMsg);
+      }
     } else {
       // Handle network errors based on type
       switch (err.type) {
@@ -80,7 +74,7 @@ class ExceptionInterceptor extends Interceptor {
           errorMsg = localizations.connectionError;
           break;
         case DioExceptionType.unknown:
-          // Handle no network situation
+          // Handle no network situation in unknown type
           if (err.message?.contains("SocketException") == true) {
             errorMsg = localizations.noNetworkConnection;
           } else {
@@ -97,11 +91,16 @@ class ExceptionInterceptor extends Interceptor {
       }
 
       if (isShowToast) {
-        NetOptions.instance.httpConfigBuilder?.toastFunc?.call(errorMsg);
+        options.httpConfigBuilder?.toastFunc?.call(errorMsg);
       }
     }
 
     // Continue passing the error
     handler.next(err);
+  }
+
+  NetOptions _getOptions(RequestOptions options) {
+    if (_options != null) return _options!;
+    return NetOptions.instance;
   }
 }

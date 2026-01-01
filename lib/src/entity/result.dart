@@ -12,14 +12,14 @@ class Result<T> {
   /// Response data
   T? data;
 
-  /// Check if the request was successful based on status code.
-  bool get isSuccess => HttpStatus.ok == code;
+  /// Check if the request was successful based on status code (200-299).
+  bool get isSuccess => code != null && code! >= 200 && code! < 300;
 
   Result._internal({this.code, this.msg, this.data});
 
   /// Create a successful result.
-  factory Result.success(T data, {String? msg}) {
-    return Result._internal(code: HttpStatus.ok, msg: msg, data: data);
+  factory Result.success(T data, {int? code, String? msg}) {
+    return Result._internal(code: code ?? HttpStatus.ok, msg: msg, data: data);
   }
 
   /// Create a failure result.
